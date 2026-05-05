@@ -16,11 +16,11 @@ load_dotenv()
 os.environ['GROQ_API_KEY'] = os.getenv('GROQ_API_KEY')
 
 if "vector" not in st.session_state:
-  st.session_state.embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+  st.session_state.embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
   st.session_state.loader = WebBaseLoader('https://docs.smith.langchain.com/')
   st.session_state.docs = st.session_state.loader.load()
-  st.session_state.text_splitter = RecursiveCharacterTextSplitter(chunk_size = 1000, chunk_overlap = 200)
-  st.session_state.final_documents = st.session_state.text_splitter.split_documents(st.session_state.docs[:10])
+  st.session_state.text_splitter = RecursiveCharacterTextSplitter(chunk_size = 500, chunk_overlap = 100)
+  st.session_state.final_documents = st.session_state.text_splitter.split_documents(st.session_state.docs[:5])
   st.session_state.vector_db = Chroma.from_documents(st.session_state.final_documents, st.session_state.embeddings)
 
 
