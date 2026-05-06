@@ -1,55 +1,81 @@
-import streamlit as st
 import os
 from dotenv import load_dotenv
+
+import gradio as gr
 
 from langchain_groq import ChatGroq
 from langchain_community.document_loaders import WebBaseLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_community.vectorstores import Chroma
+from langchain_community.vectorstores import FAISS
 from langchain_classic.chains.combine_documents import create_stuff_documents_chain
 from langchain_classic.chains import create_retrieval_chain
 from langchain_core.prompts import ChatPromptTemplate
-import time
 
 load_dotenv()
-os.environ['GROQ_API_KEY'] = os.getenv('GROQ_API_KEY')
 
-if "vector" not in st.session_state:
-  st.session_state.embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
-  st.session_state.loader = WebBaseLoader('https://docs.smith.langchain.com/')
-  st.session_state.docs = st.session_state.loader.load()
-  st.session_state.text_splitter = RecursiveCharacterTextSplitter(chunk_size = 500, chunk_overlap = 100)
-  st.session_state.final_documents = st.session_state.text_splitter.split_documents(st.session_state.docs[:5])
-  st.session_state.vector_db = Chroma.from_documents(st.session_state.final_documents, st.session_state.embeddings)
-
-
-st.title('Advanced RAG Chatbot Demo (Using Groq)')
-llm = ChatGroq(model_name='llama-3.3-70b-versatile')
-
-rag_prompt = ChatPromptTemplate.from_template(
-  """
-    Answer the questions based only on the provided context. Don't hallucinate. Make sure you give the correct and the most accurate response. Understand the input query or questions deeply and thoroughly and then use your full power and then generate the most accurate response by using your full power.
-    The context is <context> {context} </context>
-    The question is: {input}
-  """
+# ── 1. Load everything ONCE at startup (not per request) ────────────────────
+print("Loading embeddings model...")
+embeddings = HuggingFaceEmbeddings(
+    model_name="sentence-transformers/all-MiniLM-L6-v2",
+    model_kwargs={"device": "cpu"},
+    encode_kwargs={"batch_size": 8}  # process in small batches
 )
 
-document_chain = create_stuff_documents_chain(llm, rag_prompt)
-retriever = st.session_state.vector_db.as_retriever()
-retrieval_chain = create_retrieval_chain(retriever, document_chain)
+print("Loading documents...")
+loader = WebBaseLoader('https://docs.smith.langchain.com/')
+docs = loader.load()
+print("Chunking documents...")
+splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=100)
+print('Getting final docs ready...')
+final_docs = splitter.split_documents(docs)
+print("Building vector db")
+vector_db = FAISS.from_documents(final_docs, embeddings)
 
-prompt = st.text_input('Enter your questions here...')
+print("Loading LLM and building chain...")
+llm = ChatGroq(
+    groq_api_key=os.environ['GROQ_API_KEY'],
+    model_name='llama-3.3-70b-versatile'
+)
 
-if prompt: 
-  start = time.process_time()
-  response = retrieval_chain.invoke({"input": prompt})
-  print("Response time:", time.process_time() - start)
-  st.write(response['answer'])
+rag_prompt = ChatPromptTemplate.from_template("""
+    Answer the questions based only on the provided context.
+    Don't hallucinate. Give the most accurate response possible.
+    <context> {context} </context>
+    Question: {input}
+""")
 
-  with st.expander("Document Similarity Search"):
-    for i, doc in enumerate(response['context']):
-      st.write(doc.page_content)
-      st.write("------------")
+doc_chain = create_stuff_documents_chain(llm, rag_prompt)
+retriever = vector_db.as_retriever()
+chain = create_retrieval_chain(retriever, doc_chain)
 
+print("✅ All resources loaded. Starting Gradio...")
 
+# ── 2. Chat function (runs per message, chain already built) ─────────────────
+def chat(user_message, history):
+    response = chain.invoke({"input": user_message})
+    answer = response['answer']
+
+    return answer
+
+# ── 3. Gradio UI ─────────────────────────────────────────────────────────────
+with gr.Blocks(title="RAG Chatbot (Groq + LangSmith Docs)") as demo:
+    gr.Markdown("# 🤖 RAG Chatbot Demo")
+    gr.Markdown("Ask anything about **LangSmith** — powered by Groq's `llama-3.3-70b-versatile`")
+
+    chatbot = gr.ChatInterface(
+        fn=chat,
+        chatbot=gr.Chatbot(height=400, show_label=False),
+        textbox=gr.Textbox(
+            placeholder="Ask a question about LangSmith...",
+            container=False,
+            scale=7
+        ),
+        examples=[
+            "What is LangSmith?",
+            "How do I set up tracing in LangSmith?",
+            "What are the main features of LangSmith?",
+        ],
+    )
+
+demo.launch()
