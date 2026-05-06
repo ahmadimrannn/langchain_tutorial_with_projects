@@ -25,11 +25,8 @@ embeddings = HuggingFaceEmbeddings(
 print("Loading documents...")
 loader = WebBaseLoader('https://docs.smith.langchain.com/')
 docs = loader.load()
-print("Chunking documents...")
 splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=100)
-print('Getting final docs ready...')
 final_docs = splitter.split_documents(docs)
-print("Building vector db")
 vector_db = FAISS.from_documents(final_docs, embeddings)
 
 print("Loading LLM and building chain...")
