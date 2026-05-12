@@ -31,15 +31,21 @@ embeddings = HuggingFaceEmbeddings(
 )
 print("embeddings model loaded")
 
-loader = PyPDFDirectoryLoader(r'C:\Users\user\OneDrive\Desktop\langchain_tutorial\projects\rag_knowledge_base_project\knowledge')
+KNOWLEDGE_DIR = os.path.join(os.path.dirname(__file__), "knowledge")
+loader = PyPDFDirectoryLoader(KNOWLEDGE_DIR)
+
 docs = loader.load()
 print(f"Loaded {len(docs)} pages.")
 
 text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=200)
 documents = text_splitter.split_documents(docs)
 print("documents splitting has done")
+if os.path.exists("faiss_index"):
+  db = FAISS.load_local("faiss_index", embeddings, allow_dangerous_deserialization=True)
+else:
+  db = FAISS.from_documents(documents, embeddings)
+  db.save_local("faiss_index")
 
-db = FAISS.from_documents(documents, embeddings)
 print("embeddings stored in vector store")
 
 llm = ChatGroq(
@@ -55,6 +61,10 @@ rag_prompt = ChatPromptTemplate.from_template(
   """
 )
 print("prompt done")
+
+retriever = db.as_retriever()
+document_chain = create_stuff_documents_chain(llm, rag_prompt)
+retrieval_chain = create_retrieval_chain(retriever, document_chain)
 
 def load_file_by_extension(file_path):
   ext = os.path.splitext(file_path)[-1].lower()
@@ -90,9 +100,6 @@ def response(message, history):
     split_new_docs = text_splitter.split_documents(new_docs)
     db.add_documents(split_new_docs)
   
-  retriever = db.as_retriever()
-  document_chain = create_stuff_documents_chain(llm, rag_prompt)
-  retrieval_chain = create_retrieval_chain(retriever, document_chain)
 
   response = retrieval_chain.invoke({"input": user_text})
   answer = response["answer"]
