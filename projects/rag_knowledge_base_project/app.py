@@ -1,8 +1,11 @@
+# Modules for environment variables
 import os
 from dotenv import load_dotenv
 
+# Module for Interface (UI)
 import gradio as gr
 
+# Modules for Sourcing Data, transforming, embedding, and storing
 from langchain_community.document_loaders import (
     PyPDFDirectoryLoader,
     PyPDFLoader,
@@ -15,44 +18,41 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_huggingface.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 
+# Modules for Document chain, retriever, and retrieval chain
 from langchain_classic.chains.combine_documents import create_stuff_documents_chain 
 from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
-
 from langchain_classic.chains import create_retrieval_chain
 
+# Get the env variables
 load_dotenv()
 os.environ['GROQ_API_KEY'] = os.getenv('GROQ_API_KEY')
 
+# Load embeddings model
 embeddings = HuggingFaceEmbeddings(
   model_name = 'sentence-transformers/all-MiniLM-L6-v2',
   model_kwargs = {"device": "cpu"},
   encode_kwargs = {"batch_size": 8}
 )
-print("embeddings model loaded")
 
+# Load the source data and chunk it
 KNOWLEDGE_DIR = os.path.join(os.path.dirname(__file__), "knowledge")
 loader = PyPDFDirectoryLoader(KNOWLEDGE_DIR)
-
 docs = loader.load()
-print(f"Loaded {len(docs)} pages.")
-
 text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=200)
 documents = text_splitter.split_documents(docs)
-print("documents splitting has done")
+
+# Embed the data and store it in the database if it is not already stored, if it is stored, then just load it from local index file
 if os.path.exists("faiss_index"):
   db = FAISS.load_local("faiss_index", embeddings, allow_dangerous_deserialization=True)
 else:
   db = FAISS.from_documents(documents, embeddings)
   db.save_local("faiss_index")
 
-print("embeddings stored in vector store")
-
+# Initialize the LLM model and generate a rag prompt
 llm = ChatGroq(
   model_name="llama-3.3-70b-versatile"
 )
-print("LLM done")
-
 rag_prompt = ChatPromptTemplate.from_template(
   """
     Answer the questions based only on the provided context. Don't hallucinate. Don't reply to anything else that is not in the context. Make sure you provide the most accurate answer and I will give you praise when you will provide the best accurate answer which the user finds helpful. Don't give any reply to the abusive inputs. Must stay in your limits. If the user asks anything that is not in the context or it is abusive then politely say that you can answer only through the provided context. If the user praises you after he/she finds your response helpful, then say thank you like words or say glad, you liked it and then say let me know how can I help you with the context.
@@ -60,12 +60,13 @@ rag_prompt = ChatPromptTemplate.from_template(
     Question: {input}
   """
 )
-print("prompt done")
 
+# Create retriever, document chain, and retrieval chain for retrieving the embeddings from the vector store
 retriever = db.as_retriever()
 document_chain = create_stuff_documents_chain(llm, rag_prompt)
 retrieval_chain = create_retrieval_chain(retriever, document_chain)
 
+# For multiple file types uploaded by the user
 def load_file_by_extension(file_path):
   ext = os.path.splitext(file_path)[-1].lower()
   try:
@@ -86,6 +87,7 @@ def load_file_by_extension(file_path):
     print(f"Error loading {file_path}: {e}")
     return []
 
+# Function for gradio chat interface
 def response(message, history):
   user_text = message["text"]
   user_files = message["files"]
@@ -106,8 +108,7 @@ def response(message, history):
 
   return answer
 
-print("response function done")
-
+# Gradio Initialization
 with gr.Blocks(title='RAG Knowledge Based Chatbot') as demo:
   gr.Markdown('RAG Chatbot')
   gr.Markdown('Ask anything about your uploaded documents and about mr chips questions and answers')
@@ -123,7 +124,7 @@ with gr.Blocks(title='RAG Knowledge Based Chatbot') as demo:
       scale=8
     ),
     examples=[
-      "What kind of house was that Mr. Chips rented from Mrs. Wicket?",
+      "What is Logistics Regression?",
       "What services did Brookfield render during the war?",
       "When and how did Katherine die?"
     ]
