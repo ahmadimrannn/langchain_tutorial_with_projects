@@ -27,6 +27,7 @@ from langchain_classic.chains import create_retrieval_chain
 # Get the env variables
 load_dotenv()
 os.environ['GROQ_API_KEY'] = os.getenv('GROQ_API_KEY')
+os.environ['LANGCHAIN_PROJECT'] = "RAG Knowledge Base"
 
 # Load embeddings model
 embeddings = HuggingFaceEmbeddings(
