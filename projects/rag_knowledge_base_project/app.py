@@ -20,13 +20,13 @@ from langchain_community.vectorstores import FAISS
 
 # Modules for Document chain, retriever, and retrieval chain
 from langchain_classic.chains.combine_documents import create_stuff_documents_chain 
-from langchain_groq import ChatGroq
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_classic.chains import create_retrieval_chain
 
 # Get the env variables
 load_dotenv()
-os.environ['GROQ_API_KEY'] = os.getenv('GROQ_API_KEY')
+os.environ['GEMINI_API_KEY'] = os.getenv('GEMINI_API_KEY')
 os.environ['LANGCHAIN_PROJECT'] = "RAG Knowledge Base"
 
 # Load embeddings model
@@ -51,8 +51,8 @@ else:
   db.save_local("faiss_index")
 
 # Initialize the LLM model and generate a rag prompt
-llm = ChatGroq(
-  model_name="llama-3.3-70b-versatile"
+llm = ChatGoogleGenerativeAI(
+  model="gemini-3.5-flash-lite"
 )
 rag_prompt = ChatPromptTemplate.from_template(
   """
