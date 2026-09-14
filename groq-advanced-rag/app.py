@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 
 import gradio as gr
 
-from langchain_groq import ChatGroq
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_community.document_loaders import WebBaseLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
@@ -30,9 +30,8 @@ final_docs = splitter.split_documents(docs)
 vector_db = FAISS.from_documents(final_docs, embeddings)
 
 print("Loading LLM and building chain...")
-llm = ChatGroq(
-    groq_api_key=os.environ['GROQ_API_KEY'],
-    model_name='llama-3.3-70b-versatile'
+llm = ChatGoogleGenerativeAI(
+    model="gemini-3.5-flash-lite"
 )
 
 rag_prompt = ChatPromptTemplate.from_template("""

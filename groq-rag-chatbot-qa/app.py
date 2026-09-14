@@ -6,7 +6,7 @@ from langchain_community.document_loaders import PyPDFDirectoryLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
-from langchain_groq import ChatGroq
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_classic.chains.combine_documents import create_stuff_documents_chain
 from langchain_classic.chains import create_retrieval_chain
@@ -14,7 +14,7 @@ from langchain_classic.chains import create_retrieval_chain
 # Load environment variables
 load_dotenv()
 os.environ["LANGCHAIN_TRACING_V2"] = "true"
-os.environ['GROQ_API_KEY'] = os.getenv('GROQ_API_KEY')
+os.environ['GEMINI_API_KEY'] = os.getenv('GEMINI_API_KEY')
 
 # Loading the embeddings model
 embeddings = HuggingFaceEmbeddings(
@@ -32,8 +32,8 @@ vectordb = FAISS.from_documents(final_docs, embeddings)
 
 # Loading the LLM and Prompt
 
-llm = ChatGroq(
-  model_name = "llama-3.3-70b-versatile"
+llm = ChatGoogleGenerativeAI(
+  model_name = "gemini-3.5-flash-lite"
 )
 
 prompt = ChatPromptTemplate.from_template(

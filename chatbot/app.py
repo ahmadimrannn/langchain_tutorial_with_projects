@@ -1,4 +1,4 @@
-from langchain_groq import ChatGroq
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 import streamlit as st
@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-os.environ['GROQ_API_KEY'] = os.getenv('GROQ_API_KEY')
+os.environ['GEMINI_API_KEY'] = os.getenv('GEMINI_API_KEY')
 os.environ['LANGCHAIN_TRACING_V2'] = "true"
 os.environ['LANGSMITH_API_KEY'] = os.getenv('LANGSMITH_API_KEY')
 
@@ -24,7 +24,7 @@ st.title('Langchain first project (Chatbot) using Llama Model')
 input_text = st.text_input("Search any topic of your choice.")
 
 # Llama LLM
-llm = ChatGroq(model_name="llama-3.3-70b-versatile")
+llm = ChatGoogleGenerativeAI(model="gemini-3.5-flash-lite")
 output_parser = StrOutputParser()
 
 # Chaining everything together

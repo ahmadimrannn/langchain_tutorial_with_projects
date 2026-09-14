@@ -3,7 +3,7 @@ import gradio as gr
 from dotenv import load_dotenv
 from langchain_community.document_loaders.text import TextLoader
 from langchain_core.prompts import PromptTemplate
-from langchain_groq import ChatGroq
+from langchain_google_genai import ChatGoogleGenerativeAI
 from utils.text_cleaner import clean_transcript
 
 load_dotenv()
@@ -15,8 +15,8 @@ loaded_text = loader.load()
 raw_transcript = loaded_text[0].page_content
 transcript = clean_transcript(raw_transcript)
 
-llm = ChatGroq(
-  model_name='llama-3.3-70b-versatile'
+llm = ChatGoogleGenerativeAI(
+  model="gemini-3.5-flash-lite"
 )
 
 prompt = """You are an expert meeting transcription insight extractor. 

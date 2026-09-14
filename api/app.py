@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from langserve import add_routes
-from langchain_groq import ChatGroq
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 import uvicorn 
 import os
@@ -9,13 +9,13 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Get environment variable using os
-os.environ['GROQ_API_KEY'] = os.getenv('GROQ_API_KEY')
+os.environ['GEMINI_API_KEY'] = os.getenv('GEMINI_API_KEY')
 
 app = FastAPI()
 
 # LLMs
-llama_model = ChatGroq(model_name="llama-3.3-70b-versatile")
-openai_model = ChatGroq(model_name="openai/gpt-oss-120b")
+llama_model = ChatGoogleGenerativeAI(model="gemini-3.5-flash-lite")
+openai_model = ChatGoogleGenerativeAI(model_name="gemini-3.5-flash-lite")
 
 # Prompt Templates for LLMs
 llama_prompt = ChatPromptTemplate.from_template('Write me a best organized essay of about 150 words on this topic: {topic}')
